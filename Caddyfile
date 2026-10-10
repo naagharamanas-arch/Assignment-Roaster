@@ -1,0 +1,24 @@
+# Production reverse proxy. SITE_ADDRESS is the public hostname (set in .env),
+# Caddy obtains and renews the HTTPS certificate for it automatically.
+{$SITE_ADDRESS} {
+	encode gzip
+
+	# API: same origin as the site, so no CORS and the CSP 'self' rule is enough
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	handle /health {
+		reverse_proxy backend:8000
+	}
+
+	# Everything else is the SPA served by the frontend container
+	handle {
+		reverse_proxy frontend:3000
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}

@@ -41,7 +41,15 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             pass
 
 
-app = FastAPI(title="Assignment Roaster", version="0.1.0", lifespan=lifespan)
+app = FastAPI(
+    title="Assignment Roaster",
+    version="0.1.0",
+    lifespan=lifespan,
+    # Interactive API docs only outside production
+    docs_url="/docs" if settings.is_dev else None,
+    redoc_url="/redoc" if settings.is_dev else None,
+    openapi_url="/openapi.json" if settings.is_dev else None,
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 app.add_middleware(SlowAPIMiddleware)

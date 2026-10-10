@@ -15,7 +15,9 @@ _DEV_ENVIRONMENTS = {"dev", "development", "test", "testing", "local"}
 class Settings(BaseSettings):
     """Typed settings; every field has a safe default so imports work without a .env."""
 
-    model_config = SettingsConfigDict(env_file=(".env", "../.env"), env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=(".env", "../.env"), env_file_encoding="utf-8", extra="ignore"
+    )
 
     ENVIRONMENT: str = "development"
     DATABASE_URL: str = "postgresql+psycopg://user:password@localhost:5432/assignment_roaster"
@@ -47,6 +49,11 @@ class Settings(BaseSettings):
     ROAST_MAX_COMPLETION_TOKENS: int = 4000
     MAX_FILES: int = 25
     MAX_BYTES: int = 150000
+
+    @property
+    def is_dev(self) -> bool:
+        """True for local development and test environments."""
+        return self.ENVIRONMENT.lower() in _DEV_ENVIRONMENTS
 
     @field_validator("DATABASE_URL")
     @classmethod
