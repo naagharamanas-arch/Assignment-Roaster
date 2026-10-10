@@ -1,31 +1,29 @@
-# Production overlay. Use together with the base file:
+# Production overlay for a server that already runs Traefik (Hostinger's Docker template).
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-# Only Caddy is exposed to the internet; backend and frontend are bound to localhost.
+#
+# Traefik terminates HTTPS (certresolver "letsencrypt") and routes by hostname:
+#   https://$SITE_ADDRESS/api/*, /health -> backend      everything else -> frontend
+# No ports are published; Traefik reaches the containers over the Docker network.
 services:
   backend:
-    ports: !override
-      - "127.0.0.1:8000:8000"
+    ports: !reset []
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.roaster-api.rule=Host(`${SITE_ADDRESS:?SITE_ADDRESS must be set}`) && (PathPrefix(`/api`) || Path(`/health`))
+      - traefik.http.routers.roaster-api.entrypoints=websecure
+      - traefik.http.routers.roaster-api.tls.certresolver=letsencrypt
+      - traefik.http.routers.roaster-api.priority=100
+      - traefik.http.routers.roaster-api.middlewares=roaster-sec
+      - traefik.http.services.roaster-api.loadbalancer.server.port=8000
+      - traefik.http.middlewares.roaster-sec.headers.stsSeconds=31536000
 
   frontend:
-    ports: !override
-      - "127.0.0.1:3000:3000"
-
-  caddy:
-    image: caddy:2
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      SITE_ADDRESS: ${SITE_ADDRESS:?SITE_ADDRESS must be set}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - backend
-      - frontend
-
-volumes:
-  caddy_data:
-  caddy_config:
+    ports: !reset []
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.roaster-web.rule=Host(`${SITE_ADDRESS}`)
+      - traefik.http.routers.roaster-web.entrypoints=websecure
+      - traefik.http.routers.roaster-web.tls.certresolver=letsencrypt
+      - traefik.http.routers.roaster-web.priority=1
+      - traefik.http.routers.roaster-web.middlewares=roaster-sec
+      - traefik.http.services.roaster-web.loadbalancer.server.port=3000
